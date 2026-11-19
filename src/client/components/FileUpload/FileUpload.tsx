@@ -6,6 +6,9 @@ type FileUploadProps = {
     adapter: UploadAdapter;
     accept?: string;
     disabled?: boolean;
+    chunkSize?: number;
+    concurrency?: number;
+    onProgress?: (loaded: number, total: number) => void;
     onUploadSuccess?: (result: UploadResult) => void;
     onUploadError?: (result: UploadResult) => void;
 };
@@ -16,6 +19,9 @@ export const FileUpload = ({
     adapter,
     accept,
     disabled = false,
+    chunkSize,
+    concurrency,
+    onProgress,
     onUploadSuccess,
     onUploadError,
 }: FileUploadProps): JSX.Element => {
@@ -46,7 +52,11 @@ export const FileUpload = ({
         setState('uploading');
 
         try {
-            const result = await adapter.upload(file);
+            const result = await adapter.upload(file, {
+                chunkSize,
+                concurrency,
+                onProgress,
+            });
 
             if (result.type === 'success') {
                 handleUploadSuccess(result);

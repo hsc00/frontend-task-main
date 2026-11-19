@@ -46,7 +46,7 @@ describe('FileUpload', () => {
         });
 
         await new Promise((resolve) => setTimeout(resolve, 0));
-        expect(adapter.upload).toHaveBeenCalledWith(file);
+        expect(adapter.upload).toHaveBeenCalledWith(file, expect.anything());
     });
 
     it('shows success message on successful upload', async () => {
