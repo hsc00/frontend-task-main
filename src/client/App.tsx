@@ -1,6 +1,12 @@
 import { type ReactElement } from 'react';
 
+import { FileList } from './components/FileList/FileList';
+import { FileUpload } from './components/FileUpload/FileUpload';
+import { useFileList } from './hooks/useFileList';
+
 export const App = (): ReactElement => {
+    const { files, api, refreshFiles, removeFile } = useFileList();
+
     return (
         <main className="relative isolate h-dvh">
             <img
@@ -10,11 +16,13 @@ export const App = (): ReactElement => {
                 className="absolute inset-0 -z-10 h-full w-full object-cover object-top"
             />
 
-            <div className="mx-auto max-w-7xl px-6 py-32 text-center sm:py-40 lg:px-8">
-                <h1 className="mt-4 text-3xl font-bold tracking-tight text-gray-800 sm:text-5xl">Hello there</h1>
-                <p className="mt-4 text-base text-gray-900 sm:mt-6">
-                    Everything brand starts small, let&apos;s build something great.
-                </p>
+            <div className="mx-auto max-w-7xl px-6 py-32">
+                <h1 className="mt-4 text-3xl font-bold tracking-tight text-gray-800 sm:text-5xl">File Upload</h1>
+                <p className="mt-4 text-base text-gray-900 sm:mt-6">Upload new files and view existing ones below.</p>
+                <div className="mt-8 flex flex-col gap-8 sm:flex-row sm:gap-12">
+                    <FileUpload adapter={api} onUploadSuccess={refreshFiles} />
+                    <FileList files={files} onRemove={removeFile} />
+                </div>
             </div>
         </main>
     );
