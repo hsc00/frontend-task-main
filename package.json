@@ -12,7 +12,8 @@
         "test:server": "vitest run src/server/test/e2e.spec.ts",
         "test:client": "vitest src/client",
         "prepare": "husky",
-        "precommit": "npm run typecheck && npm run lint && npx prettier --check . && npx vitest run src/client"
+        "precommit": "npm run typecheck && npm run lint && npx prettier --check . && npx vitest run src/client",
+        "format": "npx prettier --write ."
     },
     "dependencies": {
         "body-parser": "^1.20.2",
