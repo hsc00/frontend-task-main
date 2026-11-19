@@ -1,0 +1,7 @@
+flake.lock
+README.md
+node_modules/
+dist/
+build/
+uploads/
+uploads-chunks/
