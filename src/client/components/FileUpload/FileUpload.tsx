@@ -1,4 +1,4 @@
-import { useState, useRef, type ChangeEvent } from 'react';
+import { useState, useRef, useId, type ChangeEvent } from 'react';
 
 import { type UploadAdapter, type UploadResult } from '../../api/UploadAdapter';
 
@@ -27,17 +27,24 @@ export const FileUpload = ({
 }: FileUploadProps): JSX.Element => {
     const [state, setState] = useState<UploadState>('idle');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [uploadingFile, setUploadingFile] = useState<File | null>(null);
+    const [statusAnnouncement, setStatusAnnouncement] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const errorId = useId();
 
     const handleUploadSuccess = (result: UploadResult) => {
         setState('success');
         setErrorMessage(null);
+        setUploadingFile(null);
+        setStatusAnnouncement(`Upload complete: ${uploadingFile?.name}`);
         onUploadSuccess?.(result);
     };
 
     const handleUploadError = (result: UploadResult) => {
         setState('error');
-        setErrorMessage(result.type === 'failure' ? result.error : 'Upload failed');
+        const errorText = result.type === 'failure' ? result.error : 'Upload failed';
+        setErrorMessage(errorText);
+        setStatusAnnouncement(`Upload failed: ${errorText}`);
         onUploadError?.(result);
     };
 
@@ -49,10 +56,44 @@ export const FileUpload = ({
         setErrorMessage(null);
 
         const file = files[0];
+
+        // Block overlapping upload of same file
+        if (isBusy && uploadingFile?.name === file.name && uploadingFile.size === file.size) {
+            return;
+        }
+
+        setErrorMessage(null);
+        setUploadingFile(file);
         setState('uploading');
+        setStatusAnnouncement(`Uploading ${file.name}`);
 
         try {
             const result = await adapter.upload(file, {
+                chunkSize,
+                concurrency,
+                onProgress,
+            });
+
+            if (result.type === 'success') {
+                handleUploadSuccess(result);
+            } else {
+                handleUploadError(result);
+            }
+        } catch {
+            handleUploadError({ type: 'failure', status: 0, error: 'Unexpected error' });
+        }
+    };
+
+    const handleRetry = async () => {
+        if (!uploadingFile) {
+            return;
+        }
+        setErrorMessage(null);
+        setState('uploading');
+        setStatusAnnouncement(`Uploading ${uploadingFile.name}`);
+
+        try {
+            const result = await adapter.upload(uploadingFile, {
                 chunkSize,
                 concurrency,
                 onProgress,
@@ -98,10 +139,10 @@ export const FileUpload = ({
         <div className="space-y-3">
             <button
                 type="button"
-                disabled={disabled}
+                disabled={disabled || isBusy}
                 aria-label="Upload file"
                 aria-busy={isBusy}
-                aria-describedby={errorMessage ? 'file-upload-error' : undefined}
+                aria-describedby={errorMessage ? errorId : undefined}
                 onClick={handleClick}
                 className={uploadButtonClassName}
             >
@@ -133,6 +174,10 @@ export const FileUpload = ({
                 onChange={handleInputChange}
             />
 
+            <div aria-live="polite" aria-atomic="true" className="sr-only">
+                {statusAnnouncement}
+            </div>
+
             {state === 'success' && (
                 <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
                     <svg
@@ -150,11 +195,7 @@ export const FileUpload = ({
             )}
 
             {state === 'error' && errorMessage && (
-                <div
-                    id="file-upload-error"
-                    role="alert"
-                    className="flex items-center gap-2 text-red-600 text-sm font-medium"
-                >
+                <div id={errorId} role="alert" className="flex items-center gap-2 text-red-600 text-sm font-medium">
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         className="h-4 w-4"
@@ -166,6 +207,13 @@ export const FileUpload = ({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                     <span>{errorMessage}</span>
+                    <button
+                        type="button"
+                        onClick={handleRetry}
+                        className="ml-2 text-red-600 hover:text-red-800 text-sm underline"
+                    >
+                        Retry
+                    </button>
                 </div>
             )}
         </div>

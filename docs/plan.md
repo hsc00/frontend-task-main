@@ -22,7 +22,7 @@ Principles: DRY, SOLID, KISS, YAGNI. Conventional commits. Pre-commit gate (Husk
 | 10    | `test: initial unit tests on FileUpload + FileList + FilesApi`   | 20 min    |
 | 11    | `git `                                                           | 30 min    |
 | 12    | `feat: add UploadOptions to adapter interface (future chunking)` | 15 min    |
-| 13    | `feat: polish + verify`                                          | 25 min    |
+| 13    | `feat: polish + verify`                                          | 40 min    |
 
 Total ≈ 3 hours.
 
@@ -155,11 +155,17 @@ Use mocked `UploadAdapter` for component tests, mocked `fetch` for API client.
 
 ## Stage 13 — `feat: polish (error/loading/empty states) + verify`
 
-**Context:** Production-ready finish.
+**Context:** Production-ready finish. Add retry-on-failure for the uploader, block overlapping uploads of the same file, add accessible status announcements via `role="alert"` and `aria-live="polite"` live regions, and unique error IDs via `useId()`.
 
-**Task:** Run full verification: typecheck, lint, prettier, vitest client.
+**Task:**
 
-**Acceptance:** All checks pass; manual end-to-end upload + list confirmed.
+-   Add retry button on `FileUpload` error state to re-attempt the same file upload
+-   Block overlapping uploads of the same file while one is in progress
+-   Add `aria-live="polite"` live region for upload status announcements (uploading/success/error)
+-   Use `useId()` for unique error message element IDs
+-   Run full verification: typecheck, lint, prettier, vitest client
+
+**Acceptance:** All checks pass; manual end-to-end upload + list confirmed; retry test passes.
 
 ## Acceptance criteria
 

@@ -90,4 +90,25 @@ describe('FileUpload', () => {
         expect(clickSpy).toHaveBeenCalled();
         clickSpy.mockRestore();
     });
+
+    it('retries upload on retry button click after failure', async () => {
+        const file = new File(['hello'], 'hello.txt', { type: 'text/plain' });
+        (adapter.upload as ReturnType<typeof vi.fn>)
+            .mockResolvedValueOnce({ type: 'failure', status: 400, error: 'Missing file' })
+            .mockResolvedValueOnce({ type: 'success', status: 200, message: 'ok' });
+
+        renderComponent(adapter);
+        fireEvent.change(screen.getByLabelText('Select file'), {
+            target: { files: [file] as unknown as FileList },
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(adapter.upload).toHaveBeenCalledTimes(1);
+        expect(screen.getByRole('alert')).toHaveTextContent('Missing file');
+
+        fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(adapter.upload).toHaveBeenCalledTimes(2);
+        expect(screen.getByText('Upload complete')).toBeInTheDocument();
+    });
 });
