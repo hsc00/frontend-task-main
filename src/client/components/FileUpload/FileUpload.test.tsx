@@ -63,6 +63,7 @@ describe('FileUpload', () => {
 
         await new Promise((resolve) => setTimeout(resolve, 0));
         expect(screen.getByText('Upload complete')).toBeInTheDocument();
+        expect(screen.getByRole('status')).toHaveTextContent('Upload complete: x.txt');
     });
 
     it('shows error message on failed upload', async () => {
@@ -110,5 +111,6 @@ describe('FileUpload', () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
         expect(adapter.upload).toHaveBeenCalledTimes(2);
         expect(screen.getByText('Upload complete')).toBeInTheDocument();
+        expect(screen.getByRole('status')).toHaveTextContent('Upload complete: hello.txt');
     });
 });

@@ -32,11 +32,11 @@ export const FileUpload = ({
     const inputRef = useRef<HTMLInputElement>(null);
     const errorId = useId();
 
-    const handleUploadSuccess = (result: UploadResult) => {
+    const handleUploadSuccess = (result: UploadResult, fileName?: string) => {
         setState('success');
         setErrorMessage(null);
         setUploadingFile(null);
-        setStatusAnnouncement(`Upload complete: ${uploadingFile?.name}`);
+        setStatusAnnouncement(`Upload complete: ${fileName ?? uploadingFile?.name}`);
         onUploadSuccess?.(result);
     };
 
@@ -75,7 +75,7 @@ export const FileUpload = ({
             });
 
             if (result.type === 'success') {
-                handleUploadSuccess(result);
+                handleUploadSuccess(result, file.name);
             } else {
                 handleUploadError(result);
             }
@@ -100,7 +100,7 @@ export const FileUpload = ({
             });
 
             if (result.type === 'success') {
-                handleUploadSuccess(result);
+                handleUploadSuccess(result, uploadingFile.name);
             } else {
                 handleUploadError(result);
             }
@@ -174,7 +174,7 @@ export const FileUpload = ({
                 onChange={handleInputChange}
             />
 
-            <div aria-live="polite" aria-atomic="true" className="sr-only">
+            <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
                 {statusAnnouncement}
             </div>
 
