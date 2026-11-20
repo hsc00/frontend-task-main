@@ -20,7 +20,7 @@ Principles: DRY, SOLID, KISS, YAGNI. Conventional commits. Pre-commit gate (Husk
 | 8     | `feat: FileUpload uploader component (single file + a11y)`       | 20 min    |
 | 9     | `feat: FileList component`                                       | 10 min    |
 | 10    | `test: initial unit tests on FileUpload + FileList + FilesApi`   | 20 min    |
-| 11    | `git `                                                           | 30 min    |
+| 11    | `feat: demo page wiring upload + list `                          | 30 min    |
 | 12    | `feat: add UploadOptions to adapter interface (future chunking)` | 15 min    |
 | 13    | `feat: polish + verify`                                          | 40 min    |
 
@@ -48,9 +48,9 @@ Total ≈ 3 hours.
 
 ## Stage 3 — `docs: log endpoint-name discrepancy fix`
 
-**Context:** README says `POST /api/upload-chunks` (plural); server implements `POST /api/upload-chunk` (singular). I code against the server. Log it.
+**Context:** README says `POST /api/upload-chunks` (plural); server implements `POST /api/upload-chunk` (singular). I code against the server.
 
-**Task:** Ensure `docs/logs/fixes.md` has FIX-001. Nothing else.
+**Task:** Ensure `docs/logs/fixes.md` has FIX-001.
 
 **Acceptance:** Fix log exists with the discrepancy noted.
 
@@ -161,7 +161,8 @@ Use mocked `UploadAdapter` for component tests, mocked `fetch` for API client.
 
 -   Add retry button on `FileUpload` error state to re-attempt the same file upload
 -   Block overlapping uploads of the same file while one is in progress
--   Add `aria-live="polite"` live region for upload status announcements (uploading/success/error)
+-   Add `role="status"` and `aria-live="polite"` live region for upload status announcements (uploading/success/error)
+-   Pass `file.name` directly to `handleUploadSuccess` to avoid stale-state bugs (don't read `uploadingFile` after `setUploadingFile(null)`)
 -   Use `useId()` for unique error message element IDs
 -   Run full verification: typecheck, lint, prettier, vitest client
 
@@ -213,12 +214,9 @@ When adding chunking in production:
 
 These can be revisited in a follow-up iteration.
 
-### Known limitations
-
--   **File listing:** A failed initial request looks like an empty library, and a late response can overwrite a newer list. In a follow-up, show an error with a retry action and ignore stale responses.
--   **Keyboard retry:** Activating Retry with the keyboard can lose focus. In a follow-up, restore focus to the upload control when the retry finishes.
-
 ### Deliberate Implementation Decisions
 
 -   **Module-level `FilesApi` singleton in `useFileList.ts`** — `const api = new FilesApi()` is module-level, shared across hook instances. Intentional: single-instance app only; if the hook were ever reused in multiple components concurrently, it would need to be instantiated per-instance.
 -   **`refreshFiles` not memoized** — Defined inline in the hook body; `useEffect` depends on `[]` so it never re-runs. `refreshFiles` being recreated each render is harmless and not worth `useCallback` given the module-level `api` singleton.
+-   **File listing:** A failed initial request looks like an empty library, and a late response can overwrite a newer list. In a follow-up, show an error with a retry action and ignore stale responses.
+-   **Keyboard retry:** Activating Retry with the keyboard can lose focus. In a follow-up, restore focus to the upload control when the retry finishes.
