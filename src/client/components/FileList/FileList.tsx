@@ -13,7 +13,7 @@ export const FileList = ({ files, onRemove }: FileListProps): JSX.Element => {
     return (
         <div>
             {files.length === 0 ? (
-                <p className="text-gray-500 text-sm">No files uploaded yet.</p>
+                <p className="text-gray-500 text-sm mt-3">No files uploaded yet.</p>
             ) : (
                 <ul className="divide-y divide-gray-200">
                     {files.map((file) => (
