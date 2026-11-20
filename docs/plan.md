@@ -213,6 +213,11 @@ When adding chunking in production:
 
 These can be revisited in a follow-up iteration.
 
+### Known limitations
+
+-   **File listing:** A failed initial request looks like an empty library, and a late response can overwrite a newer list. In a follow-up, show an error with a retry action and ignore stale responses.
+-   **Keyboard retry:** Activating Retry with the keyboard can lose focus. In a follow-up, restore focus to the upload control when the retry finishes.
+
 ### Deliberate Implementation Decisions
 
 -   **Module-level `FilesApi` singleton in `useFileList.ts`** — `const api = new FilesApi()` is module-level, shared across hook instances. Intentional: single-instance app only; if the hook were ever reused in multiple components concurrently, it would need to be instantiated per-instance.
