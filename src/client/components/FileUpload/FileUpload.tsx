@@ -1,6 +1,5 @@
-import { useState, useRef, useId, type ChangeEvent } from 'react';
-
 import { type UploadAdapter, type UploadResult } from '../../api/UploadAdapter';
+import { useFileUpload } from '../../hooks/useFileUpload';
 
 type FileUploadProps = {
     adapter: UploadAdapter;
@@ -11,9 +10,9 @@ type FileUploadProps = {
     onProgress?: (loaded: number, total: number) => void;
     onUploadSuccess?: (result: UploadResult) => void;
     onUploadError?: (result: UploadResult) => void;
+    maxRetries?: number;
+    retryDelay?: number;
 };
-
-type UploadState = 'idle' | 'uploading' | 'success' | 'error';
 
 export const FileUpload = ({
     adapter,
@@ -24,87 +23,20 @@ export const FileUpload = ({
     onProgress,
     onUploadSuccess,
     onUploadError,
+    maxRetries = 3,
+    retryDelay = 1000,
 }: FileUploadProps): JSX.Element => {
-    const [state, setState] = useState<UploadState>('idle');
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [uploadingFile, setUploadingFile] = useState<File | null>(null);
-    const [statusAnnouncement, setStatusAnnouncement] = useState<string | null>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
-    const errorId = useId();
-
-    const handleUploadSuccess = (result: UploadResult, fileName?: string) => {
-        setState('success');
-        setErrorMessage(null);
-        setUploadingFile(null);
-        setStatusAnnouncement(`Upload complete: ${fileName ?? uploadingFile?.name}`);
-        onUploadSuccess?.(result);
-    };
-
-    const handleUploadError = (result: UploadResult) => {
-        setState('error');
-        const errorText = result.type === 'failure' ? result.error : 'Upload failed';
-        setErrorMessage(errorText);
-        setStatusAnnouncement(`Upload failed: ${errorText}`);
-        onUploadError?.(result);
-    };
-
-    const handleUpload = async (file: File) => {
-        setErrorMessage(null);
-        setUploadingFile(file);
-        setState('uploading');
-        setStatusAnnouncement(`Uploading ${file.name}`);
-
-        try {
-            const result = await adapter.upload(file, {
-                chunkSize,
-                concurrency,
-                onProgress,
-            });
-
-            if (result.type === 'success') {
-                handleUploadSuccess(result, file.name);
-            } else {
-                handleUploadError(result);
-            }
-        } catch {
-            handleUploadError({ type: 'failure', status: 0, error: 'Unexpected error' });
-        }
-    };
-
-    const handleFiles = async (files: FileList | null) => {
-        if (!files || files.length === 0) {
-            return;
-        }
-
-        const file = files[0];
-
-        // Block overlapping upload of same file
-        if (isBusy && uploadingFile?.name === file.name && uploadingFile.size === file.size) {
-            return;
-        }
-
-        await handleUpload(file);
-    };
-
-    const handleRetry = async () => {
-        if (!uploadingFile) {
-            return;
-        }
-        await handleUpload(uploadingFile);
-    };
-
-    const handleInputChange = async (event: ChangeEvent<HTMLInputElement>) => {
-        await handleFiles(event.target.files);
-    };
-
-    const handleClick = () => {
-        if (disabled || inputRef.current === null) {
-            return;
-        }
-        inputRef.current.click();
-    };
-
-    const isBusy = state === 'uploading';
+    const { state, isUploading, errorMessage, statusAnnouncement, inputRef, errorId, uploadFiles, retryUpload } =
+        useFileUpload({
+            adapter,
+            chunkSize,
+            concurrency,
+            onProgress,
+            onUploadSuccess,
+            onUploadError,
+            maxRetries,
+            retryDelay,
+        });
     const baseClasses = 'flex items-center justify-center gap-2 px-4 py-3 border rounded-md transition-colors';
     const disabledClasses = `${baseClasses} border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed`;
     const busyClasses = `${baseClasses} border-blue-500 bg-blue-50 text-blue-700`;
@@ -113,7 +45,7 @@ export const FileUpload = ({
     let uploadButtonClassName: string;
     if (disabled) {
         uploadButtonClassName = disabledClasses;
-    } else if (isBusy) {
+    } else if (isUploading) {
         uploadButtonClassName = busyClasses;
     } else {
         uploadButtonClassName = defaultClasses;
@@ -123,11 +55,11 @@ export const FileUpload = ({
         <div className="space-y-3">
             <button
                 type="button"
-                disabled={disabled || isBusy}
+                disabled={disabled || isUploading}
                 aria-label="Upload file"
-                aria-busy={isBusy}
+                aria-busy={isUploading}
                 aria-describedby={errorMessage ? errorId : undefined}
-                onClick={handleClick}
+                onClick={() => inputRef.current?.click()}
                 className={uploadButtonClassName}
             >
                 <svg
@@ -155,7 +87,7 @@ export const FileUpload = ({
                 disabled={disabled}
                 hidden
                 aria-label="Select file"
-                onChange={handleInputChange}
+                onChange={(event) => uploadFiles(event.target.files)}
             />
 
             <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
@@ -193,7 +125,7 @@ export const FileUpload = ({
                     <span>{errorMessage}</span>
                     <button
                         type="button"
-                        onClick={handleRetry}
+                        onClick={retryUpload}
                         className="ml-2 text-red-600 hover:text-red-800 text-sm underline"
                     >
                         Retry
