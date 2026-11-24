@@ -48,20 +48,7 @@ export const FileUpload = ({
         onUploadError?.(result);
     };
 
-    const handleFiles = async (files: FileList | null) => {
-        if (!files || files.length === 0) {
-            return;
-        }
-
-        setErrorMessage(null);
-
-        const file = files[0];
-
-        // Block overlapping upload of same file
-        if (isBusy && uploadingFile?.name === file.name && uploadingFile.size === file.size) {
-            return;
-        }
-
+    const handleUpload = async (file: File) => {
         setErrorMessage(null);
         setUploadingFile(file);
         setState('uploading');
@@ -84,29 +71,26 @@ export const FileUpload = ({
         }
     };
 
+    const handleFiles = async (files: FileList | null) => {
+        if (!files || files.length === 0) {
+            return;
+        }
+
+        const file = files[0];
+
+        // Block overlapping upload of same file
+        if (isBusy && uploadingFile?.name === file.name && uploadingFile.size === file.size) {
+            return;
+        }
+
+        await handleUpload(file);
+    };
+
     const handleRetry = async () => {
         if (!uploadingFile) {
             return;
         }
-        setErrorMessage(null);
-        setState('uploading');
-        setStatusAnnouncement(`Uploading ${uploadingFile.name}`);
-
-        try {
-            const result = await adapter.upload(uploadingFile, {
-                chunkSize,
-                concurrency,
-                onProgress,
-            });
-
-            if (result.type === 'success') {
-                handleUploadSuccess(result, uploadingFile.name);
-            } else {
-                handleUploadError(result);
-            }
-        } catch {
-            handleUploadError({ type: 'failure', status: 0, error: 'Unexpected error' });
-        }
+        await handleUpload(uploadingFile);
     };
 
     const handleInputChange = async (event: ChangeEvent<HTMLInputElement>) => {
